@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatHub - Modern Chat App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'primary-dark': '#4A49B0',
+                        'primary-light': '#7978E9',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-in': 'slideIn 0.3s ease-in-out',
+                        'slide-in-left': 'slideInLeft 0.3s ease-in-out',
+                        'bounce-in': 'bounceIn 0.5s ease',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideIn: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        slideInLeft: {
+                            '0%': { transform: 'translateX(-10px)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' },
+                        },
+                        bounceIn: {
+                            '0%': { transform: 'scale(0.8)', opacity: '0' },
+                            '70%': { transform: 'scale(1.05)', opacity: '1' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 20px;
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(75, 85, 99, 0.5);
+        }
+        
+        /* Message styles */
+        .message-bubble {
+            position: relative;
+            border-radius: 1rem;
+            max-width: 80%;
+            word-break: break-word;
+        }
+        
+        .message-bubble.sender {
+            border-bottom-right-radius: 0.25rem;
+            margin-left: auto;
+        }
+        
+        .message-bubble.recipient {
+            border-bottom-left-radius: 0.25rem;
+            margin-right: auto;
+        }
+        
+        /* User status indicators */
+        .status-indicator {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .dark .status-indicator {
+            border-color: #1F2937;
+        }
+        
+        /* Emoji picker */
+        .emoji-picker {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .emoji-item {
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 2rem;
+            width: 2rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+        
+        .emoji-item:hover {
+            background-color: rgba(156, 163, 175, 0.2);
+        }
+        
+        .dark .emoji-item:hover {
+            background-color: rgba(75, 85, 99, 0.5);
+        }
+        
+        /* Mobile sidebar */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 50;
+                width: 280px;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .sidebar-overlay {
+                position: fixed;
+                inset: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 40;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease-in-out;
+            }
+            
+            .sidebar-overlay.open {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+        
+        /* Typing indicator animation */
+        .typing-indicator span {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            margin: 0 1px;
+            background-color: #9CA3AF;
+            animation: typing 1.4s infinite both;
+        }
+        
+        .dark .typing-indicator span {
+            background-color: #D1D5DB;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-4px);
+            }
+        }
+        
+        /* New message notification */
+        .new-message-indicator {
+            position: absolute;
+            bottom: 5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounceIn 0.5s;
+        }
+        
+        /* Channel hover effect */
+        .channel-item:hover, .direct-message-item:hover {
+            background-color: rgba(93, 92, 222, 0.1);
+        }
+        
+        .dark .channel-item:hover, .dark .direct-message-item:hover {
+            background-color: rgba(121, 120, 233, 0.15);
+        }
+        
+        /* Active channel */
+        .channel-item.active, .direct-message-item.active {
+            background-color: rgba(93, 92, 222, 0.15);
+        }
+        
+        .dark .channel-item.active, .dark .direct-message-item.active {
+            background-color: rgba(121, 120, 233, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col">
+    <!-- Sidebar Overlay (Mobile) -->
+    <div id="sidebarOverlay" class="sidebar-overlay md:hidden"></div>
+    
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar bg-white dark:bg-gray-800 shadow-md md:shadow-none w-72 flex-shrink-0 md:relative md:transform-none">
+            <div class="h-full flex flex-col">
+                <!-- Sidebar Header -->
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary dark:text-primary-light mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                            <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+                        </svg>
+                        <h1 class="text-xl font-bold text-primary dark:text-primary-light">ChatHub</h1>
+                    </div>
+                    <button id="closeSidebar" class="md:hidden text-gray-500 dark:text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- User Profile -->
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center space-x-3">
+                        <div class="relative">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%235D5CDE'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='20' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EYou%3C/text%3E%3C/svg%3E" alt="Your profile" class="w-10 h-10 rounded-full">
+                            <span class="status-indicator bg-green-500"></span>
+                        </div>
+                        <div>
+                            <div class="font-medium">You</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                                <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                                Online
+                            </div>
+                        </div>
+                        <div class="ml-auto">
+                            <button id="statusButton" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Status Menu (Hidden by default) -->
+                    <div id="statusMenu" class="hidden mt-2 p-2 bg-white dark:bg-gray-700 rounded-lg shadow-lg animate-fade-in">
+                        <div class="space-y-2">
+                            <button class="status-option w-full flex items-center p-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-600" data-status="online">
+                                <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                                Online
+                            </button>
+                            <button class="status-option w-full flex items-center p-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-600" data-status="away">
+                                <span class="inline-block w-2 h-2 rounded-full bg-yellow-500 mr-2"></span>
+                                Away
+                            </button>
+                            <button class="status-option w-full flex items-center p-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-600" data-status="busy">
+                                <span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-2"></span>
+                                Do Not Disturb
+                            </button>
+                            <button class="status-option w-full flex items-center p-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-600" data-status="offline">
+                                <span class="inline-block w-2 h-2 rounded-full bg-gray-500 mr-2"></span>
+                                Offline
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Search -->
+                <div class="p-4">
+                    <div class="relative">
+                        <input type="text" placeholder="Search" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg focus:ring-2 focus:ring-primary dark:focus:ring-primary-light text-base">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute right-3 top-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Channels & Direct Messages -->
+                <div class="flex-grow overflow-y-auto custom-scrollbar">
+                    <!-- Channels -->
+                    <div class="px-3 mt-2">
+                        <div class="flex items-center justify-between py-2 px-1">
+                            <h2 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Channels</h2>
+                            <button id="addChannelButton" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <button class="channel-item active w-full flex items-center py-1.5 px-2 rounded-md text-left" data-channel="general">
+                                <span class="text-gray-500 dark:text-gray-400 mr-2">#</span>
+                                <span>general</span>
+                                <span class="ml-auto bg-primary text-white text-xs rounded-full px-2 py-0.5">2</span>
+                            </button>
+                            <button class="channel-item w-full flex items-center py-1.5 px-2 rounded-md text-left" data-channel="random">
+                                <span class="text-gray-500 dark:text-gray-400 mr-2">#</span>
+                                <span>random</span>
+                            </button>
+                            <button class="channel-item w-full flex items-center py-1.5 px-2 rounded-md text-left" data-channel="tech-talk">
+                                <span class="text-gray-500 dark:text-gray-400 mr-2">#</span>
+                                <span>tech-talk</span>
+                            </button>
+                            <button class="channel-item w-full flex items-center py-1.5 px-2 rounded-md text-left" data-channel="announcements">
+                                <span class="text-gray-500 dark:text-gray-400 mr-2">#</span>
+                                <span>announcements</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Direct Messages -->
+                    <div class="px-3 mt-6">
+                        <div class="flex items-center justify-between py-2 px-1">
+                            <h2 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Direct Messages</h2>
+                            <button id="addDmButton" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <button class="direct-message-item w-full flex items-center py-1.5 px-2 rounded-md text-left" data-user="sarah">
+                                <div class="relative mr-2">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23E879F9'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ES%3C/text%3E%3C/svg%3E" alt="Sarah" class="w-6 h-6 rounded-full">
+                                    <span class="status-indicator bg-green-500" style="width: 8px; height: 8px;"></span>
+                                </div>
+                                <span>Sarah Chen</span>
+                            </button>
+                            <button class="direct-message-item w-full flex items-center py-1.5 px-2 rounded-md text-left" data-user="mike">
+                                <div class="relative mr-2">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2334D399'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EM%3C/text%3E%3C/svg%3E" alt="Mike" class="w-6 h-6 rounded-full">
+                                    <span class="status-indicator bg-yellow-500" style="width: 8px; height: 8px;"></span>
+                                </div>
+                                <span>Mike Johnson</span>
+                                <span class="ml-auto bg-primary text-white text-xs rounded-full px-2 py-0.5">3</span>
+                            </button>
+                            <button class="direct-message-item w-full flex items-center py-1.5 px-2 rounded-md text-left" data-user="alex">
+                                <div class="relative mr-2">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%234B5563'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EA%3C/text%3E%3C/svg%3E" alt="Alex" class="w-6 h-6 rounded-full">
+                                    <span class="status-indicator bg-red-500" style="width: 8px; height: 8px;"></span>
+                                </div>
+                                <span>Alex Morgan</span>
+                            </button>
+                            <button class="direct-message-item w-full flex items-center py-1.5 px-2 rounded-md text-left" data-user="taylor">
+                                <div class="relative mr-2">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23F59E0B'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ET%3C/text%3E%3C/svg%3E" alt="Taylor" class="w-6 h-6 rounded-full">
+                                    <span class="status-indicator bg-gray-500" style="width: 8px; height: 8px;"></span>
+                                </div>
+                                <span>Taylor Swift</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sidebar Footer -->
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <button id="themeToggle" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                            <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                            <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </button>
+                        <button id="settingsButton" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </button>
+                        <button id="helpButton" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-grow flex flex-col h-screen">
+            <!-- Chat Header -->
+            <header class="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-800 p-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <button id="mobileMenuButton" class="md:hidden mr-3 text-gray-500 dark:text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    
+                    <div>
+                        <h2 class="text-lg font-medium flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-2">#</span>
+                            <span id="currentChannelName">general</span>
+                        </h2>
+                        <p id="channelDescription" class="text-sm text-gray-500 dark:text-gray-400">General discussions for everyone</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <button id="pinButton" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                    </button>
+                    <button id="memberButton" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </button>
+                    <button id="searchButton" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Chat Messages -->
+            <div id="chatContainer" class="flex-grow overflow-y-auto custom-scrollbar p-4">
+                <!-- Messages will be inserted here -->
+            </div>
+            
+            <!-- New Message Indicator -->
+            <div id="newMessageIndicator" class="new-message-indicator hidden">
+                <button class="bg-primary text-white px-4 py-2 rounded-full shadow-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                    New messages
+                </button>
+            </div>
+            
+            <!-- Message Input -->
+            <div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
+                <div class="relative">
+                    <textarea id="messageInput" placeholder="Type a message..." class="w-full px-4 py-3 pr-20 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg focus:ring-2 focus:ring-primary dark:focus:ring-primary-light text-base resize-none" rows="1"></textarea>
+                    
+                    <div class="absolute right-2 bottom-2 flex items-center space-x-1">
+                        <button id="emojiButton" class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <button id="attachButton" class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                        </button>
+                        <button id="sendButton" class="p-1.5 text-white bg-primary hover:bg-primary-dark rounded-full transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Emoji Picker (Hidden by default) -->
+            <div id="emojiPicker" class="hidden absolute bottom-20 right-4 p-3 bg-white dark:bg-gray-700 rounded-lg shadow-xl w-72 animate-bounce-in z-10">
+                <div class="emoji-picker max-h-64 overflow-y-auto custom-scrollbar p-2">
+                    <!-- Emojis will be inserted here -->
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Add Channel Modal (Hidden by default) -->
+    <div id="addChannelModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50" id="channelModalOverlay"></div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md mx-4 z-10 animate-fade-in">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Create New Channel</h2>
+                    <button id="closeChannelModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <form id="addChannelForm">
+                    <div class="mb-4">
+                        <label for="channelName" class="block text-sm font-medium mb-1">Channel Name</label>
+                        <div class="flex items-center">
+                            <span class="text-gray-500 dark:text-gray-400 mr-2">#</span>
+                            <input type="text" id="channelName" class="flex-grow px-4 py-2 border rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-light text-base" placeholder="e.g. marketing" required>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Use lowercase letters, numbers, and hyphens only. No spaces.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="channelDescription" class="block text-sm font-medium mb-1">Description (optional)</label>
+                        <input type="text" id="channelDescriptionInput" class="w-full px-4 py-2 border rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-light text-base" placeholder="What's this channel about?">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Privacy</label>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input type="radio" id="public-channel" name="privacy" value="public" class="h-4 w-4 text-primary focus:ring-primary dark:focus:ring-primary-light" checked>
+                                <label for="public-channel" class="ml-2">
+                                    <div class="font-medium">Public</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Anyone in the workspace can view and join this channel</div>
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" id="private-channel" name="privacy" value="private" class="h-4 w-4 text-primary focus:ring-primary dark:focus:ring-primary-light">
+                                <label for="private-channel" class="ml-2">
+                                    <div class="font-medium">Private</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Only invited people can view and join this channel</div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4">
+                        <button type="submit" class="w-full py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition">
+                            Create Channel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Channel and messages data
+        const channels = {
+            "general": {
+                name: "general",
+                description: "General discussions for everyone",
+                members: 32,
+                messages: [
+                    {
+                        id: 1,
+                        sender: "Taylor Swift",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23F59E0B'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ET%3C/text%3E%3C/svg%3E",
+                        text: "Hey everyone! Welcome to the general channel. This is where we can discuss anything team related.",
+                        timestamp: "2023-09-15T10:30:00",
+                        isYou: false
+                    },
+                    {
+                        id: 2,
+                        sender: "Sarah Chen",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23E879F9'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ES%3C/text%3E%3C/svg%3E",
+                        text: "Hi Taylor! Thanks for setting this up. I'm excited to collaborate with everyone here.",
+                        timestamp: "2023-09-15T10:32:00",
+                        isYou: false
+                    },
+                    {
+                        id: 3,
+                        sender: "Mike Johnson",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2334D399'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EM%3C/text%3E%3C/svg%3E",
+                        text: "Just checking in! Has anyone started working on the new project yet?",
+                        timestamp: "2023-09-15T10:45:00",
+                        isYou: false
+                    },
+                    {
+                        id: 4,
+                        sender: "You",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%235D5CDE'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EY%3C/text%3E%3C/svg%3E",
+                        text: "I'm planning to start on it today. I've been gathering some ideas that I think will work well!",
+                        timestamp: "2023-09-15T10:47:00",
+                        isYou: true
+                    },
+                    {
+                        id: 5,
+                        sender: "Alex Morgan",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%234B5563'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EA%3C/text%3E%3C/svg%3E",
+                        text: "Great! Maybe we should schedule a brainstorming session soon? I'm free tomorrow afternoon if anyone wants to join.",
+                        timestamp: "2023-09-15T10:50:00",
+                        isYou: false
+                    },
+                    {
+                        id: 6,
+                        sender: "Sarah Chen",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23E879F9'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ES%3C/text%3E%3C/svg%3E",
+                        text: "Count me in for the brainstorming! I have some research I can share too.",
+                        timestamp: "2023-09-15T10:52:00",
+                        isYou: false
+                    }
+                ]
+            },
+            "random": {
+                name: "random",
+                description: "Share random thoughts and fun content",
+                members: 28,
+                messages: [
+                    {
+                        id: 1,
+                        sender: "Alex Morgan",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%234B5563'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EA%3C/text%3E%3C/svg%3E",
+                        text: "Did anyone see that new sci-fi movie that just came out? I heard it was amazing!",
+                        timestamp: "2023-09-15T11:20:00",
+                        isYou: false
+                    },
+                    {
+                        id: 2,
+                        sender: "Mike Johnson",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2334D399'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EM%3C/text%3E%3C/svg%3E",
+                        text: "Yes! I watched it last weekend. The special effects were incredible!",
+                        timestamp: "2023-09-15T11:22:00",
+                        isYou: false
+                    },
+                    {
+                        id: 3,
+                        sender: "Taylor Swift",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23F59E0B'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ET%3C/text%3E%3C/svg%3E",
+                        text: "Random fact of the day: Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3,000 years old and still perfectly good to eat!",
+                        timestamp: "2023-09-15T11:30:00",
+                        isYou: false
+                    }
+                ]
+            },
+            "tech-talk": {
+                name: "tech-talk",
+                description: "Discuss tech news, tools, and tips",
+                members: 24,
+                messages: [
+                    {
+                        id: 1,
+                        sender: "Sarah Chen",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23E879F9'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ES%3C/text%3E%3C/svg%3E",
+                        text: "Has anyone played with the new React 18 features yet? I'm particularly interested in the new concurrent rendering capabilities.",
+                        timestamp: "2023-09-15T09:15:00",
+                        isYou: false
+                    },
+                    {
+                        id: 2,
+                        sender: "Mike Johnson",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2334D399'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EM%3C/text%3E%3C/svg%3E",
+                        text: "I've been experimenting with them in a side project. The automatic batching is a game-changer for performance!",
+                        timestamp: "2023-09-15T09:18:00",
+                        isYou: false
+                    },
+                    {
+                        id: 3,
+                        sender: "You",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%235D5CDE'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EY%3C/text%3E%3C/svg%3E",
+                        text: "I found this great tutorial on using React 18 with concurrent features: https://react.dev/blog/2022/03/29/react-v18",
+                        timestamp: "2023-09-15T09:25:00",
+                        isYou: true
+                    }
+                ]
+            },
+            "announcements": {
+                name: "announcements",
+                description: "Important team announcements",
+                members: 35,
+                messages: [
+                    {
+                        id: 1,
+                        sender: "Taylor Swift",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23F59E0B'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ET%3C/text%3E%3C/svg%3E",
+                        text: "📢 **Team Update**: We'll be having an all-hands meeting this Friday at 2 PM to discuss the Q4 roadmap. Please make sure to attend as important decisions will be made.",
+                        timestamp: "2023-09-14T15:00:00",
+                        isYou: false
+                    },
+                    {
+                        id: 2,
+                        sender: "Taylor Swift",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23F59E0B'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ET%3C/text%3E%3C/svg%3E",
+                        text: "📢 **Office Closure**: Reminder that the office will be closed next Monday for the holiday. Enjoy the long weekend!",
+                        timestamp: "2023-09-15T09:00:00",
+                        isYou: false
+                    }
+                ]
+            }
+        };
+        
+        // Direct messages data
+        const directMessages = {
+            "sarah": {
+                name: "Sarah Chen",
+                avatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23E879F9'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ES%3C/text%3E%3C/svg%3E",
+                status: "online",
+                messages: [
+                    {
+                        id: 1,
+                        sender: "Sarah Chen",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23E879F9'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ES%3C/text%3E%3C/svg%3E",
+                        text: "Hi there! I wanted to ask about the presentation for tomorrow's meeting.",
+                        timestamp: "2023-09-15T14:25:00",
+                        isYou: false
+                    },
+                    {
+                        id: 2,
+                        sender: "You",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%235D5CDE'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EY%3C/text%3E%3C/svg%3E",
+                        text: "Hey Sarah! I've got most of the slides ready. Is there anything specific you wanted me to cover?",
+                        timestamp: "2023-09-15T14:28:00",
+                        isYou: true
+                    },
+                    {
+                        id: 3,
+                        sender: "Sarah Chen",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23E879F9'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ES%3C/text%3E%3C/svg%3E",
+                        text: "Could you include the Q3 metrics? I think that would be valuable for the team to see.",
+                        timestamp: "2023-09-15T14:30:00",
+                        isYou: false
+                    }
+                ]
+            },
+            "mike": {
+                name: "Mike Johnson",
+                avatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2334D399'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EM%3C/text%3E%3C/svg%3E",
+                status: "away",
+                messages: [
+                    {
+                        id: 1,
+                        sender: "Mike Johnson",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2334D399'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EM%3C/text%3E%3C/svg%3E",
+                        text: "Hey, do you have a minute to help me debug something?",
+                        timestamp: "2023-09-15T13:10:00",
+                        isYou: false
+                    },
+                    {
+                        id: 2,
+                        sender: "Mike Johnson",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2334D399'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EM%3C/text%3E%3C/svg%3E",
+                        text: "I'm getting a strange error with the API integration we discussed yesterday.",
+                        timestamp: "2023-09-15T13:11:00",
+                        isYou: false
+                    },
+                    {
+                        id: 3,
+                        sender: "Mike Johnson",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%2334D399'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EM%3C/text%3E%3C/svg%3E",
+                        text: "Let me know when you're free to chat!",
+                        timestamp: "2023-09-15T13:15:00",
+                        isYou: false
+                    }
+                ]
+            },
+            "alex": {
+                name: "Alex Morgan",
+                avatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%234B5563'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EA%3C/text%3E%3C/svg%3E",
+                status: "busy",
+                messages: [
+                    {
+                        id: 1,
+                        sender: "You",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%235D5CDE'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EY%3C/text%3E%3C/svg%3E",
+                        text: "Hi Alex, did you get a chance to review the design mockups I sent over?",
+                        timestamp: "2023-09-15T10:05:00",
+                        isYou: true
+                    },
+                    {
+                        id: 2,
+                        sender: "Alex Morgan",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%234B5563'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EA%3C/text%3E%3C/svg%3E",
+                        text: "Not yet, sorry! I'm in meetings all morning. I'll take a look right after lunch, promise!",
+                        timestamp: "2023-09-15T10:10:00",
+                        isYou: false
+                    },
+                    {
+                        id: 3,
+                        sender: "You",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%235D5CDE'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EY%3C/text%3E%3C/svg%3E",
+                        text: "No problem! Take your time. I'll need the feedback by EOD if possible.",
+                        timestamp: "2023-09-15T10:12:00",
+                        isYou: true
+                    }
+                ]
+            },
+            "taylor": {
+                name: "Taylor Swift",
+                avatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23F59E0B'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ET%3C/text%3E%3C/svg%3E",
+                status: "offline",
+                messages: [
+                    {
+                        id: 1,
+                        sender: "Taylor Swift",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23F59E0B'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ET%3C/text%3E%3C/svg%3E",
+                        text: "I'll be out of office tomorrow, but I'll be checking emails occasionally.",
+                        timestamp: "2023-09-14T17:30:00",
+                        isYou: false
+                    },
+                    {
+                        id: 2,
+                        sender: "You",
+                        senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%235D5CDE'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EY%3C/text%3E%3C/svg%3E",
+                        text: "Thanks for letting me know! Enjoy your day off. I'll handle anything urgent that comes up.",
+                        timestamp: "2023-09-14T17:35:00",
+                        isYou: true
+                    }
+                ]
+            }
+        };
+        
+        // Common emojis
+        const commonEmojis = [
+            "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇",
+            "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚",
+            "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩",
+            "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣",
+            "👍", "👎", "👏", "🙌", "🤝", "👊", "✌️", "🤞", "🤟", "🤘",
+            "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "❣️", "💕", "💞",
+            "✨", "🔥", "⭐", "🌟", "💫", "🚀", "🏆", "🎯", "🎉", "🎊"
+        ];
+        
+        // DOM Elements
+        const chatContainer = document.getElementById("chatContainer");
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const emojiButton = document.getElementById("emojiButton");
+        const emojiPicker = document.getElementById("emojiPicker");
+        const addChannelButton = document.getElementById("addChannelButton");
+        const addChannelModal = document.getElementById("addChannelModal");
+        const closeChannelModal = document.getElementById("closeChannelModal");
+        const channelModalOverlay = document.getElementById("channelModalOverlay");
+        const addChannelForm = document.getElementById("addChannelForm");
+        const themeToggle = document.getElementById("themeToggle");
+        const moonIcon = document.getElementById("moonIcon");
+        const sunIcon = document.getElementById("sunIcon");
+        const currentChannelName = document.getElementById("currentChannelName");
+        const channelDescription = document.getElementById("channelDescription");
+        const statusButton = document.getElementById("statusButton");
+        const statusMenu = document.getElementById("statusMenu");
+        const statusOptions = document.querySelectorAll(".status-option");
+        const addDmButton = document.getElementById("addDmButton");
+        const mobileMenuButton = document.getElementById("mobileMenuButton");
+        const sidebar = document.getElementById("sidebar");
+        const sidebarOverlay = document.getElementById("sidebarOverlay");
+        const closeSidebar = document.getElementById("closeSidebar");
+        const channelButtons = document.querySelectorAll(".channel-item");
+        const directMessageButtons = document.querySelectorAll(".direct-message-item");
+        const newMessageIndicator = document.getElementById("newMessageIndicator");
+        
+        // State
+        let currentConversation = {
+            type: "channel",
+            id: "general"
+        };
+        let userStatus = "online";
+        
+        // Initialize theme
+        function initTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+                moonIcon.classList.add('hidden');
+                sunIcon.classList.remove('hidden');
+            }
+            
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+                if (event.matches) {
+                    document.documentElement.classList.add('dark');
+                    moonIcon.classList.add('hidden');
+                    sunIcon.classList.remove('hidden');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    moonIcon.classList.remove('hidden');
+                    sunIcon.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Toggle theme
+        themeToggle.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                moonIcon.classList.remove('hidden');
+                sunIcon.classList.add('hidden');
+            } else {
+                document.documentElement.classList.add('dark');
+                moonIcon.classList.add('hidden');
+                sunIcon.classList.remove('hidden');
+            }
+        });
+        
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) {
+                // Today, show time
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else if (diffDays === 1) {
+                // Yesterday
+                return "Yesterday";
+            } else if (diffDays < 7) {
+                // Within the last week, show day of week
+                const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                return days[date.getDay()];
+            } else {
+                // More than a week ago, show date
+                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            }
+        }
+        
+        // Render chat messages
+        function renderMessages() {
+            chatContainer.innerHTML = "";
+            
+            let messages = [];
+            if (currentConversation.type === "channel") {
+                messages = channels[currentConversation.id].messages;
+                currentChannelName.textContent = channels[currentConversation.id].name;
+                channelDescription.textContent = channels[currentConversation.id].description;
+            } else { // DM
+                messages = directMessages[currentConversation.id].messages;
+                currentChannelName.textContent = directMessages[currentConversation.id].name;
+                channelDescription.textContent = "";
+            }
+            
+            let lastDate = null;
+            
+            messages.forEach(message => {
+                // Check if we need to add a date separator
+                const messageDate = new Date(message.timestamp).toLocaleDateString();
+                if (lastDate !== messageDate) {
+                    const dateSeparator = document.createElement('div');
+                    dateSeparator.className = 'flex items-center my-4';
+                    dateSeparator.innerHTML = `
+                        <div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                        <div class="mx-4 text-xs text-gray-500 dark:text-gray-400 font-medium">${new Date(message.timestamp).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+                        <div class="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                    `;
+                    chatContainer.appendChild(dateSeparator);
+                    lastDate = messageDate;
+                }
+                
+                // Create message element
+                const messageElement = document.createElement('div');
+                messageElement.className = `flex mb-4 ${message.isYou ? 'justify-end' : 'items-start'}`;
+                
+                if (message.isYou) {
+                    // User's own message
+                    messageElement.innerHTML = `
+                        <div class="message-bubble sender bg-primary text-white p-3 max-w-xs md:max-w-md lg:max-w-lg animate-fade-in">
+                            <div class="text-sm">${message.text}</div>
+                            <div class="text-xs text-right mt-1 opacity-80">${formatTimestamp(message.timestamp)}</div>
+                        </div>
+                    `;
+                } else {
+                    // Message from others
+                    messageElement.innerHTML = `
+                        <img src="${message.senderAvatar}" alt="${message.sender}" class="w-8 h-8 rounded-full mr-2 mt-1">
+                        <div>
+                            <div class="flex items-center">
+                                <div class="font-medium text-sm">${message.sender}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 ml-2">${formatTimestamp(message.timestamp)}</div>
+                            </div>
+                            <div class="message-bubble recipient bg-gray-100 dark:bg-gray-700 p-3 mt-1 animate-fade-in">
+                                <div class="text-sm">${message.text}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                chatContainer.appendChild(messageElement);
+            });
+            
+            // Auto scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Send message
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+            
+            const now = new Date().toISOString();
+            
+            const newMessage = {
+                id: Date.now(),
+                sender: "You",
+                senderAvatar: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%235D5CDE'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='12' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EY%3C/text%3E%3C/svg%3E",
+                text: text,
+                timestamp: now,
+                isYou: true
+            };
+            
+            if (currentConversation.type === "channel") {
+                channels[currentConversation.id].messages.push(newMessage);
+            } else {
+                directMessages[currentConversation.id].messages.push(newMessage);
+            }
+            
+            renderMessages();
+            messageInput.value = "";
+            
+            // Simulate response (for demo purposes)
+            simulateResponse();
+        }
+        
+        // Simulate response
+        function simulateResponse() {
+            // Only in direct messages
+            if (currentConversation.type === "dm") {
+                // Show typing indicator
+                const typingIndicator = document.createElement('div');
+                typingIndicator.className = 'flex items-center mb-4 animate-fade-in';
+                typingIndicator.innerHTML = `
+                    <img src="${directMessages[currentConversation.id].avatar}" alt="${directMessages[currentConversation.id].name}" class="w-8 h-8 rounded-full mr-2">
+                    <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                        <div class="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                `;
+                typingIndicator.id = 'typingIndicator';
+                chatContainer.appendChild(typingIndicator);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // Generate response after delay
+                setTimeout(() => {
+                    const typingElement = document.getElementById('typingIndicator');
+                    if (typingElement) {
+                        chatContainer.removeChild(typingElement);
+                    }
+                    
+                    const responses = [
+                        "That sounds good!",
+                        "I'll look into that and get back to you.",
+                        "Thanks for the update!",
+                        "I agree with your approach.",
+                        "Do you have a moment to discuss this further?",
+                        "Good point, I hadn't thought of that.",
+                        "Let's schedule a meeting to talk about this."
+                    ];
+                    
+                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                    const now = new Date();
+                    now.setMinutes(now.getMinutes() + 1);
+                    
+                    const responseMessage = {
+                        id: Date.now(),
+                        sender: directMessages[currentConversation.id].name,
+                        senderAvatar: directMessages[currentConversation.id].avatar,
+                        text: randomResponse,
+                        timestamp: now.toISOString(),
+                        isYou: false
+                    };
+                    
+                    directMessages[currentConversation.id].messages.push(responseMessage);
+                    renderMessages();
+                }, 2000);
+            }
+        }
+        
+        // Initialize emoji picker
+        function initEmojiPicker() {
+            const emojiPickerContent = document.querySelector('.emoji-picker');
+            commonEmojis.forEach(emoji => {
+                const emojiItem = document.createElement('div');
+                emojiItem.className = 'emoji-item';
+                emojiItem.textContent = emoji;
+                emojiItem.addEventListener('click', () => {
+                    messageInput.value += emoji;
+                    emojiPicker.classList.add('hidden');
+                    messageInput.focus();
+                });
+                emojiPickerContent.appendChild(emojiItem);
+            });
+        }
+        
+        // Create new channel
+        function createChannel(name, description, isPrivate) {
+            // Format the channel name (lowercase, replace spaces with hyphens)
+            const channelId = name.toLowerCase().replace(/\s+/g, '-');
+            
+            // Check if channel already exists
+            if (channels[channelId]) {
+                alert('A channel with this name already exists.');
+                return false;
+            }
+            
+            // Create new channel
+            channels[channelId] = {
+                name: channelId,
+                description: description,
+                members: 1, // Start with just the creator
+                messages: [] // Empty messages array
+            };
+            
+            // Add to sidebar
+            const channelsContainer = document.querySelector('.channel-item').parentElement;
+            const newChannelButton = document.createElement('button');
+            newChannelButton.className = 'channel-item w-full flex items-center py-1.5 px-2 rounded-md text-left';
+            newChannelButton.setAttribute('data-channel', channelId);
+            newChannelButton.innerHTML = `
+                <span class="text-gray-500 dark:text-gray-400 mr-2">#</span>
+                <span>${channelId}</span>
+                ${isPrivate ? '<span class="ml-auto text-gray-500 dark:text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></span>' : ''}
+            `;
+            
+            newChannelButton.addEventListener('click', () => {
+                switchConversation('channel', channelId);
+            });
+            
+            channelsContainer.appendChild(newChannelButton);
+            
+            return true;
+        }
+        
+        // Switch between conversations (channels or DMs)
+        function switchConversation(type, id) {
+            currentConversation.type = type;
+            currentConversation.id = id;
+            
+            // Update active state in sidebar
+            document.querySelectorAll('.channel-item, .direct-message-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            if (type === 'channel') {
+                document.querySelector(`.channel-item[data-channel="${id}"]`).classList.add('active');
+            } else {
+                document.querySelector(`.direct-message-item[data-user="${id}"]`).classList.add('active');
+            }
+            
+            // Render messages
+            renderMessages();
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 768) {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('open');
+            }
+        }
+        
+        // Event Listeners
+        
+        // Send message on button click or Enter key
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // Toggle emoji picker
+        emojiButton.addEventListener('click', () => {
+            emojiPicker.classList.toggle('hidden');
+        });
+        
+        // Close emoji picker when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!emojiPicker.contains(e.target) && e.target !== emojiButton) {
+                emojiPicker.classList.add('hidden');
+            }
+        });
+        
+        // Toggle status menu
+        statusButton.addEventListener('click', () => {
+            statusMenu.classList.toggle('hidden');
+        });
+        
+        // Close status menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!statusMenu.contains(e.target) && e.target !== statusButton) {
+                statusMenu.classList.add('hidden');
+            }
+        });
+        
+        // Handle status selection
+        statusOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const status = option.getAttribute('data-status');
+                userStatus = status;
+                
+                // Update status indicator
+                const statusDot = document.querySelector('.status-indicator');
+                statusDot.className = 'status-indicator';
+                
+                switch (status) {
+                    case 'online':
+                        statusDot.classList.add('bg-green-500');
+                        break;
+                    case 'away':
+                        statusDot.classList.add('bg-yellow-500');
+                        break;
+                    case 'busy':
+                        statusDot.classList.add('bg-red-500');
+                        break;
+                    case 'offline':
+                        statusDot.classList.add('bg-gray-500');
+                        break;
+                }
+                
+                // Update status text
+                const statusText = document.querySelector('.status-indicator').nextElementSibling.children[1];
+                statusText.innerHTML = `<span class="inline-block w-2 h-2 rounded-full ${statusDot.className.replace('status-indicator ', '')} mr-1"></span> ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+                
+                // Hide menu
+                statusMenu.classList.add('hidden');
+            });
+        });
+        
+        // Open add channel modal
+        addChannelButton.addEventListener('click', () => {
+            addChannelModal.classList.remove('hidden');
+        });
+        
+        // Close add channel modal
+        closeChannelModal.addEventListener('click', () => {
+            addChannelModal.classList.add('hidden');
+        });
+        
+        channelModalOverlay.addEventListener('click', () => {
+            addChannelModal.classList.add('hidden');
+        });
+        
+        // Handle channel creation
+        addChannelForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const channelName = document.getElementById('channelName').value.trim();
+            const channelDescription = document.getElementById('channelDescriptionInput').value.trim();
+            const isPrivate = document.getElementById('private-channel').checked;
+            
+            if (channelName) {
+                if (createChannel(channelName, channelDescription, isPrivate)) {
+                    // Reset form and close modal
+                    addChannelForm.reset();
+                    addChannelModal.classList.add('hidden');
+                    
+                    // Switch to the new channel
+                    switchConversation('channel', channelName.toLowerCase().replace(/\s+/g, '-'));
+                }
+            }
+        });
+        
+        // Handle new direct message button
+        addDmButton.addEventListener('click', () => {
+            // This would open a modal to select users
+            // For demo purposes, we'll just show a notification
+            alert("New direct message feature would open a user selection modal.");
+        });
+        
+        // Mobile menu handling
+        mobileMenuButton.addEventListener('click', () => {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('open');
+        });
+        
+        closeSidebar.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('open');
+        });
+        
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('open');
+        });
+        
+        // Channel buttons
+        channelButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const channelId = button.getAttribute('data-channel');
+                switchConversation('channel', channelId);
+            });
+        });
+        
+        // Direct message buttons
+        directMessageButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const userId = button.getAttribute('data-user');
+                switchConversation('dm', userId);
+            });
+        });
+        
+        // New message indicator
+        chatContainer.addEventListener('scroll', () => {
+            // Show indicator when not at bottom
+            const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
+            
+            if (isAtBottom) {
+                newMessageIndicator.classList.add('hidden');
+            }
+        });
+        
+        // Click on new message indicator
+        newMessageIndicator.addEventListener('click', () => {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            newMessageIndicator.classList.add('hidden');
+        });
+        
+        // Adjust textarea height based on content
+        messageInput.addEventListener('input', () => {
+            messageInput.style.height = 'auto';
+            const newHeight = Math.min(messageInput.scrollHeight, 150);
+            messageInput.style.height = newHeight + 'px';
+        });
+        
+        // Initialize the app
+        function init() {
+            // Initialize theme
+            initTheme();
+            
+            // Initialize emoji picker
+            initEmojiPicker();
+            
+            // Render initial messages
+            renderMessages();
+            
+            // Auto-focus message input
+            messageInput.focus();
+        }
+        
+        // Start the app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    width: calc(100% / 7);
+}
+
+.calendar-day.today {
+    position: relative;
+}
+
+.calendar-day.today::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #5D5CDE;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.calendar-day.has-event::before {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: #5D5CDE;
+    top: 4px;
+    right: 4px;
+}
+
+.modal-overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: opacity 0.2s ease-in-out;
+}
+
+.modal-content {
+    max-height: calc(100vh - 40px);
+    width: calc(100% - 40px);
+    max-width: 600px;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+}
+
+.dark .date-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.category-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+}
+
+/* Event card hover effect */
+.event-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.event-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Responsive date picker */
+@media (max-width: 640px) {
+    input[type="datetime-local"] {
+        font-size: 16px;
+        /* Prevents zoom on mobile */
+    }
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 20px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(75, 85, 99, 0.5);
+}
+
+/* Toast notification */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 50;
+    animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Date pill */
+.date-pill {
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+}
